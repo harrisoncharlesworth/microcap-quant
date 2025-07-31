@@ -33,10 +33,10 @@ class TradingConfig:
     alpaca_api_key: str = os.getenv("APCA_API_KEY_ID", os.getenv("ALPACA_API_KEY", ""))
     alpaca_secret_key: str = os.getenv("APCA_API_SECRET_KEY", os.getenv("ALPACA_SECRET_KEY", ""))
     
-    # AI API keys
-    openai_api_key: str = ""
-    anthropic_api_key: str = ""
-    groq_api_key: str = ""
+    # AI API keys (read from environment variables)
+    openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
+    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
+    groq_api_key: str = os.getenv("GROQ_API_KEY", "")
     alpha_vantage_api_key: str = "WW3N0WEQM54IHAYH"
     
     # AI configuration
