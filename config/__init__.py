@@ -28,8 +28,24 @@ class TradingConfig:
     alpaca_api_key: str = ""
     alpaca_secret_key: str = ""
     
+    # AI API keys
+    openai_api_key: str = ""
+    anthropic_api_key: str = ""
+    groq_api_key: str = ""
+    alpha_vantage_api_key: str = "WW3N0WEQM54IHAYH"
+    
     # AI configuration
     primary_model: str = "gpt-4"
+    backup_model: str = "gpt-3.5-turbo"
+    deep_research_model: str = "gpt-4"
+    
+    # Trading schedule
+    trading_time: str = "09:30"
+    market_open_time: str = "09:30"
+    timezone: str = "America/New_York"
+    
+    # Risk management
+    max_position_pct: float = 0.15
     
     # AI decision parameters
     confidence_threshold: float = 0.7
