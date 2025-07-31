@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "microcap-ai"
+version = "0.2.0"
+description = "AI-driven micro-cap trading engine with o3 deep research"
+authors = [{name = "Harrison Charlesworth"}]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["trading", "ai", "microcap", "quantitative", "openai", "o3"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+
+dependencies = [
+    "yfinance>=0.2.18",
+    "openai>=1.98.0",
+    "anthropic>=0.60.0",
+    "groq>=0.30.0",
+    "schedule>=1.2.0",
+    "alpaca-trade-api>=3.0.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.31.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "matplotlib>=3.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+    "pre-commit>=3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/harrisoncharlesworth/microcap-quant"
+Repository = "https://github.com/harrisoncharlesworth/microcap-quant"
+Issues = "https://github.com/harrisoncharlesworth/microcap-quant/issues"
+
+[project.scripts]
+microcap-ai = "auto_trader.automated_trader:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["auto_trader*", "scripts*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+select = ["E", "F", "W", "C90", "I", "N", "UP", "B", "A", "C4", "PIE", "PL"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
