@@ -7,7 +7,7 @@ import logging
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from config import TradingConfig
-from ai_decision_engine import TradingDecision
+from .ai_decision_engine import TradingDecision
 
 @dataclass
 class OrderResult:

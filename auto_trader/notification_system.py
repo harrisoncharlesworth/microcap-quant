@@ -4,7 +4,7 @@ Notification System for automated trading alerts
 import logging
 from typing import Dict, List
 from config import TradingConfig
-from ai_decision_engine import TradingDecision
+from .ai_decision_engine import TradingDecision
 
 class NotificationSystem:
     def __init__(self, config: TradingConfig):

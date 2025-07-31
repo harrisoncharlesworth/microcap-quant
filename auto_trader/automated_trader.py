@@ -16,9 +16,9 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from config import TradingConfig, BENCHMARK_TICKERS, DEEP_RESEARCH_DAYS
-from ai_decision_engine import AIDecisionEngine, TradingDecision
-from broker_interface import BrokerInterface, OrderResult
-from notification_system import NotificationSystem
+from .ai_decision_engine import AIDecisionEngine, TradingDecision
+from .broker_interface import BrokerInterface, OrderResult
+from .notification_system import NotificationSystem
 
 class AutomatedTrader:
     def __init__(self, config: TradingConfig):
