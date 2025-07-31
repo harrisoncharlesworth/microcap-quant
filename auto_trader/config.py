@@ -1,0 +1,48 @@
+"""
+Configuration settings for the automated trading system
+"""
+import os
+from dataclasses import dataclass
+from typing import List
+
+@dataclass
+class TradingConfig:
+    # Portfolio settings
+    starting_cash: float = 100.0
+    max_position_size: float = 0.15  # 15% max per stock
+    stop_loss_pct: float = 0.15  # 15% stop loss
+    max_daily_loss: float = 0.05  # 5% daily circuit breaker
+    
+    # Trading universe
+    market_cap_max: float = 300_000_000  # $300M max market cap
+    min_volume: float = 50_000  # $50k daily volume minimum
+    
+    # AI settings
+    openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
+    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
+    primary_model: str = "gpt-4"  # or "claude-3-sonnet"
+    backup_model: str = "claude-3-sonnet"
+    
+    # Broker settings
+    alpaca_api_key: str = os.getenv("ALPACA_API_KEY", "")
+    alpaca_secret_key: str = os.getenv("ALPACA_SECRET_KEY", "")
+    paper_trading: bool = True
+    
+    # Scheduling
+    trading_time: str = "16:30"  # Run 30min after market close EST
+    timezone: str = "US/Eastern"
+    
+    # Monitoring
+    slack_webhook: str = os.getenv("SLACK_WEBHOOK", "")
+    email_alerts: bool = True
+    
+    # Data storage
+    data_dir: str = "Scripts and CSV Files"
+    portfolio_file: str = "chatgpt_portfolio_update.csv"
+    trade_log_file: str = "chatgpt_trade_log.csv"
+
+# Watchlist tickers for comparison
+BENCHMARK_TICKERS = ["^RUT", "IWO", "XBI"]
+
+# Weekly deep research schedule
+DEEP_RESEARCH_DAYS = ["friday"]  # Run weekly deep research on Fridays
