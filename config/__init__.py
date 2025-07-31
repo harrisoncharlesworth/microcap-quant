@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 from typing import List, Dict, Any
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 @dataclass
 class TradingConfig:
