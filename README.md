@@ -25,11 +25,11 @@ cd microcap-quant
 pip install -r requirements.txt
 
 # Configure your API keys
-cp .env.example .env
+cp config/.env.example .env
 # Edit .env with your OpenAI + Alpaca credentials
 
 # Test the system
-python test_ai_only.py
+python tests/test_ai_only.py
 
 # Run full cycle
 python auto_trader/automated_trader.py run-once
@@ -38,16 +38,19 @@ python auto_trader/automated_trader.py run-once
 ## 🏗️ Architecture
 
 ```
-auto_trader/          # Core trading engine
-├── ai_decision_engine.py    # Multi-LLM orchestration
-├── automated_trader.py      # Main execution loop
-├── risk_gate.py            # Advanced risk controls
-└── broker_interface.py     # Alpaca API wrapper
-
-scripts/              # Utilities & visualization
-data/                # Portfolio state & trade logs
-docs/                # Strategy documentation
-reports/             # Research output
+microcap-quant/
+├── auto_trader/           # Core trading engine
+│   ├── ai_decision_engine.py    # Multi-LLM orchestration
+│   ├── automated_trader.py      # Main execution loop
+│   ├── risk_gate.py             # Advanced risk controls
+│   └── broker_interface.py      # Alpaca API wrapper
+├── scripts/               # Utilities & visualization
+├── tests/                 # Test suite
+├── data/                  # Portfolio state & trade logs
+├── docs/                  # Strategy documentation
+├── reports/               # Research output
+├── config/                # Configuration templates
+└── deployment/            # Production deployment files
 ```
 
 ## 🧠 AI Strategy
