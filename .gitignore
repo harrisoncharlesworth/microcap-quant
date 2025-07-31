@@ -1,0 +1,40 @@
+# Environment variables and secrets
+.env
+.env.*
+.env.backup
+.env.local
+.env.development
+.env.production
+
+# Logs with potential sensitive data
+logs/
+*.log
+
+# State files (may contain trade data)
+state.json
+
+# Database files
+data/
+*.db
+*.sqlite
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+.coverage
+htmlcov/
