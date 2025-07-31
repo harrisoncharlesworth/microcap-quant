@@ -11,11 +11,14 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the trading bot
-COPY trade_bot.py .
+# Copy the entire project
+COPY . .
+
+# Install the package in development mode
+RUN pip install -e .
 
 # Create directories for logs and state
-RUN mkdir -p logs
+RUN mkdir -p logs data
 
 # Run the bot
-CMD ["python", "trade_bot.py"]
+CMD ["python", "-m", "auto_trader.automated_trader"]
