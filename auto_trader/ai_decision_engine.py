@@ -1,8 +1,9 @@
 """
-AI Decision Engine - Automates ChatGPT trading decisions
+AI Decision Engine - Automates AI trading decisions with multiple model support
 """
 import openai
 import anthropic
+import groq
 import json
 import logging
 from typing import Dict, List, Optional, Tuple
@@ -22,7 +23,14 @@ class AIDecisionEngine:
     def __init__(self, config: TradingConfig):
         self.config = config
         self.openai_client = openai.OpenAI(api_key=config.openai_api_key)
-        self.anthropic_client = anthropic.Anthropic(api_key=config.anthropic_api_key)
+        try:
+            self.anthropic_client = anthropic.Anthropic(api_key=config.anthropic_api_key)
+        except:
+            self.anthropic_client = None
+        try:
+            self.groq_client = groq.Groq(api_key=config.groq_api_key)
+        except:
+            self.groq_client = None
         self.logger = logging.getLogger(__name__)
         
     def make_daily_decisions(self, portfolio_data: Dict, market_data: Dict) -> List[TradingDecision]:
@@ -57,6 +65,20 @@ class AIDecisionEngine:
             return decisions
         except Exception as e:
             self.logger.error(f"Weekly research failed: {e}")
+            return []
+    
+    def make_deep_research(self, portfolio_data: Dict) -> List[TradingDecision]:
+        """Make deep research decisions using the research model at market open"""
+        prompt = self._build_research_prompt(portfolio_data)
+        mdl = self.config.deep_research_model or self.config.primary_model
+        
+        try:
+            response = self._call_ai_model(prompt, mdl, max_tokens=2000)
+            decisions = self._parse_decisions(response)
+            self.logger.info(f"Deep research ({mdl}) generated {len(decisions)} decisions")
+            return decisions
+        except Exception as e:
+            self.logger.error(f"Deep research failed: {e}")
             return []
     
     def _build_daily_prompt(self, portfolio_data: Dict, market_data: Dict) -> str:
@@ -100,49 +122,112 @@ Respond in JSON format:
         return prompt
     
     def _build_research_prompt(self, portfolio_data: Dict) -> str:
-        """Build the weekly research prompt"""
+        """Build the deep research prompt optimized for o3-deep-research"""
         portfolio_summary = self._format_portfolio(portfolio_data)
         
-        prompt = f"""You are a professional portfolio analyst conducting weekly deep research.
+        prompt = f"""I need comprehensive market research and investment analysis for my micro-cap portfolio.
 
-CURRENT PORTFOLIO:
+CURRENT PORTFOLIO STATUS:
 {portfolio_summary}
 
-Use deep research capabilities to:
-1. Evaluate current holdings for continued strength
-2. Identify new micro-cap opportunities (market cap under $300M)
-3. Consider macro trends affecting small caps
-4. Analyze relative performance vs benchmarks
+RESEARCH OBJECTIVES:
+1. Conduct thorough analysis of current holdings using latest financial data, SEC filings, and earnings reports
+2. Identify 3-5 new micro-cap investment opportunities (market cap under $300M) with strong fundamentals
+3. Analyze macro trends affecting small-cap stocks and sector rotation patterns
+4. Compare performance metrics against Russell 2000 and sector benchmarks
+5. Assess risk factors including liquidity, volatility, and market sentiment
 
-Make strategic decisions for the week ahead. You have complete control to buy, sell, or hold.
+REQUIRED ANALYSIS:
+- Financial metrics: P/E ratios, revenue growth, debt levels, cash flow
+- Recent news, earnings, and analyst coverage
+- Technical analysis: price trends, volume patterns, support/resistance levels
+- Sector analysis and competitive positioning
+- Management quality and insider trading activity
 
-Respond in JSON format with your decisions and provide a thesis summary:
+Please provide specific data including current prices, target prices, and risk assessments. Include charts and tables where relevant. 
+
+DELIVERABLE FORMAT:
+Provide trading recommendations in JSON format with detailed reasoning:
 {{
   "decisions": [
     {{
-      "action": "BUY",
-      "ticker": "EXAMPLE", 
-      "confidence": 0.85,
-      "reasoning": "Deep research shows strong fundamentals",
-      "position_size": 0.12
+      "action": "BUY/SELL/HOLD",
+      "ticker": "TICKER",
+      "confidence": 0.0-1.0,
+      "reasoning": "Detailed analysis with specific data points",
+      "position_size": 0.XX,
+      "target_price": 0.XX,
+      "stop_loss": 0.XX
     }}
   ],
-  "thesis_summary": "Brief summary of your investment thesis for next week"
-}}"""
+  "market_analysis": "Comprehensive market overview with data",
+  "risk_assessment": "Portfolio risk analysis with metrics",
+  "thesis_summary": "Investment thesis for next trading period"
+}}
+
+Focus on actionable insights backed by quantitative data and reliable sources."""
         return prompt
     
     def _call_ai_model(self, prompt: str, model: str, max_tokens: int = 1000) -> str:
-        """Call the specified AI model"""
-        if model.startswith("gpt"):
+        """Route to correct provider based on model prefix"""
+        if model.startswith("o3-deep-research"):
+            # Use OpenAI Responses API for Deep Research
+            try:
+                response = self.openai_client.responses.create(
+                    model=model,
+                    input=[
+                        {
+                            "role": "developer",
+                            "content": """You are a professional financial analyst and micro-cap stock researcher. 
+                            
+Your task is to provide data-rich insights with specific figures, trends, and statistics. 
+Focus on measurable outcomes and quantitative analysis. Use reliable financial sources like SEC filings, 
+earnings reports, and established financial databases. Include inline citations and prioritize 
+data-backed arguments for investment decisions.
+
+Summarize findings in a structured format that could inform trading decisions, including specific 
+price targets, risk assessments, and timing considerations."""
+                        },
+                        {
+                            "role": "user", 
+                            "content": prompt
+                        }
+                    ],
+                    reasoning={"summary": "auto"},
+                    tools=[{"type": "web_search_preview"}]
+                )
+                
+                # Debug: print response structure
+                self.logger.info(f"Deep Research Response type: {type(response)}")
+                self.logger.info(f"Deep Research Response attributes: {dir(response)}")
+                
+                # Try different ways to extract content
+                if hasattr(response, 'output') and hasattr(response.output, 'content'):
+                    return response.output.content
+                elif hasattr(response, 'content'):
+                    return response.content
+                elif hasattr(response, 'result'):
+                    return str(response.result)
+                else:
+                    return str(response)
+                    
+            except Exception as e:
+                self.logger.error(f"Deep Research API call failed: {e}")
+                # Fallback to regular GPT model
+                return self._call_ai_model(prompt, "gpt-4o", max_tokens)
+        
+        elif model.startswith("gpt"):
             response = self.openai_client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
                 temperature=0.7
             )
-            return response.choices[0].message.content
+            return response.choices[0].message.content or ""
         
         elif model.startswith("claude"):
+            if not self.anthropic_client:
+                raise ValueError("Anthropic client not initialized - check ANTHROPIC_API_KEY")
             response = self.anthropic_client.messages.create(
                 model=model,
                 max_tokens=max_tokens,
@@ -150,8 +235,20 @@ Respond in JSON format with your decisions and provide a thesis summary:
             )
             return response.content[0].text
         
+        elif model.startswith("groq/"):
+            if not self.groq_client:
+                raise ValueError("Groq client not initialized - check GROQ_API_KEY")
+            groq_model = model.split("/", 1)[1]  # e.g. groq/llama3-70b-8192
+            response = self.groq_client.chat.completions.create(
+                model=groq_model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+                temperature=0.7
+            )
+            return response.choices[0].message.content or ""
+        
         else:
-            raise ValueError(f"Unknown model: {model}")
+            raise ValueError(f"Unknown model family: {model}")
     
     def _parse_decisions(self, response: str) -> List[TradingDecision]:
         """Parse AI response into trading decisions"""
@@ -182,8 +279,20 @@ Respond in JSON format with your decisions and provide a thesis summary:
     def _format_portfolio(self, portfolio_data: Dict) -> str:
         """Format portfolio data for prompt"""
         lines = []
-        for position in portfolio_data.get("positions", []):
-            lines.append(f"- {position['ticker']}: {position['shares']} shares @ ${position['buy_price']:.2f}")
+        positions = portfolio_data.get("positions", {})
+        
+        # Handle both dict and list formats
+        if isinstance(positions, dict):
+            for ticker, position in positions.items():
+                shares = position.get('shares', 0)
+                buy_price = position.get('buy_price', position.get('avg_price', 0))
+                lines.append(f"- {ticker}: {shares} shares @ ${buy_price:.2f}")
+        elif isinstance(positions, list):
+            for position in positions:
+                ticker = position.get('ticker', 'UNKNOWN')
+                shares = position.get('shares', 0)
+                buy_price = position.get('buy_price', position.get('avg_price', 0))
+                lines.append(f"- {ticker}: {shares} shares @ ${buy_price:.2f}")
         
         lines.append(f"Cash: ${portfolio_data.get('cash', 0):.2f}")
         lines.append(f"Total Equity: ${portfolio_data.get('total_equity', 0):.2f}")

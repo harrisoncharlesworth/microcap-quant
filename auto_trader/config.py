@@ -20,8 +20,10 @@ class TradingConfig:
     # AI settings
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
     anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
-    primary_model: str = "gpt-4"  # or "claude-3-sonnet"
-    backup_model: str = "claude-3-sonnet"
+    groq_api_key: str = os.getenv("GROQ_API_KEY", "")
+    primary_model: str = os.getenv("AI_PRIMARY_MODEL", "gpt-4o")  # 16:30 cycle
+    backup_model: str = os.getenv("AI_BACKUP_MODEL", "gpt-4")  # fallback
+    deep_research_model: str = os.getenv("AI_RESEARCH_MODEL", "o3-deep-research-2025-06-26")  # 09:30 cycle
     
     # Broker settings
     alpaca_api_key: str = os.getenv("ALPACA_API_KEY", "")
@@ -30,6 +32,7 @@ class TradingConfig:
     
     # Scheduling
     trading_time: str = "16:30"  # Run 30min after market close EST
+    market_open_time: str = "09:30"  # NEW - research runs at open
     timezone: str = "US/Eastern"
     
     # Monitoring
@@ -37,7 +40,7 @@ class TradingConfig:
     email_alerts: bool = True
     
     # Data storage
-    data_dir: str = "Scripts and CSV Files"
+    data_dir: str = "data"
     portfolio_file: str = "chatgpt_portfolio_update.csv"
     trade_log_file: str = "chatgpt_trade_log.csv"
 

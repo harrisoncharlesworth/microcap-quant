@@ -326,17 +326,50 @@ class AutomatedTrader:
         except:
             return 0
     
+    def run_opening_cycle(self):
+        """09:30 EST – heavy research + optional trades"""
+        try:
+            self.logger.info("=== Starting Market-Open Research Cycle ===")
+            portfolio_data = self.load_current_portfolio()
+
+            # 1. Deep research with alternate model
+            decisions = self.ai_engine.make_deep_research(portfolio_data)
+
+            # 2. Execute (same safety gates as daily cycle)
+            if decisions:
+                self.execute_and_log_trades(decisions, portfolio_data)
+            else:
+                self.logger.info("No research-driven trades generated")
+
+            # 3. Update and report (reuse existing helpers)
+            self.update_portfolio_records()
+            performance = self.calculate_performance()
+            self.notifications.send_custom_report(
+                title="Market-Open Research Report",
+                decisions=decisions,
+                performance=performance
+            )
+
+            self.logger.info("=== Market-Open Research Cycle Complete ===")
+        except Exception as e:
+            self.logger.error(f"Market-open cycle failed: {e}")
+            self.notifications.send_error_alert(str(e))
+
     def start_automated_trading(self):
         """Start the automated trading schedule"""
         self.logger.info("Starting automated trading system...")
         
-        # Schedule daily trading
+        # Schedule daily trading at market close
         schedule.every().day.at(self.config.trading_time).do(self.run_daily_cycle)
+        
+        # Schedule deep research at market open
+        schedule.every().day.at(self.config.market_open_time).do(self.run_opening_cycle)
         
         # Initial health check
         self.notifications.send_startup_notification()
         
         self.logger.info(f"Scheduled daily trading at {self.config.trading_time} {self.config.timezone}")
+        self.logger.info(f"Scheduled deep research at {self.config.market_open_time} {self.config.timezone}")
         
         # Keep running
         while True:
@@ -348,9 +381,15 @@ def main():
     config = TradingConfig()
     trader = AutomatedTrader(config)
     
-    if len(sys.argv) > 1 and sys.argv[1] == "run-once":
-        # Run once for testing
-        trader.run_daily_cycle()
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "run-once":
+            # Run daily cycle once for testing
+            trader.run_daily_cycle()
+        elif sys.argv[1] == "run-once-research":
+            # Run research cycle once for testing
+            trader.run_opening_cycle()
+        else:
+            print("Usage: python automated_trader.py [run-once|run-once-research]")
     else:
         # Start automated schedule
         trader.start_automated_trading()

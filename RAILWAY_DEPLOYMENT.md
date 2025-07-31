@@ -10,7 +10,7 @@
 
 1. Go to [railway.app](https://railway.app)
 2. Click **"New Project"** → **"Deploy from GitHub repo"**
-3. Select: `harrisoncharlesworth/ChatGPT-Micro-Cap-Experiment`
+3. Select: `harrisoncharlesworth/microcap-quant`
 
 ### Step 2: Configure Environment Variables
 

@@ -1,77 +1,68 @@
-# ChatGPT Micro-Cap Experiment
-Welcome to the repo behind my 6-month live trading experiment where ChatGPT manages a real-money micro-cap portfolio.
+# Micro-Cap Quantitative Trading
 
-# The Concept
-Everyday, I kept seeing the same ad about having an some A.I. pick undervalued stocks. It was obvious it was trying to get me to subscribe to some garbage, so I just rolled my eyes. 
-Then I started wondering, "How well would that actually work?".
+AI-powered micro-cap stock trading system with automated portfolio management and performance tracking.
 
-So, starting with just $100, I wanted to answer a simple but powerful question:
+## Overview
 
-#### **Can powerful large language models like ChatGPT actually generate alpha (or at least make smart trading decisions) using real-time data?**
+This project implements an AI-driven trading system focused on micro-cap stocks (market cap under $300M). The system uses real-time data analysis and automated decision-making to manage a live trading portfolio.
 
-## Each trading day:
+## Features
 
-- I provide it trading data on the stocks in it's portfolio.
+- **Automated Trading Logic**: Daily portfolio evaluation and trade execution
+- **Risk Management**: Built-in stop-loss triggers and position sizing
+- **Performance Tracking**: Comprehensive logging of trades and portfolio metrics
+- **Research Integration**: Weekly deep research analysis for strategy refinement
+- **Visualization**: Performance charts comparing against market indices
 
-- Strict stop-loss rules apply.
+## Documentation
 
-- Everyweek I allow it to use deep research to reevaluate it's account.
-
-- I track and publish performance data weekly on my blog. (https://substack.com/@nathanbsmith?utm_source=edit-profile-page)
-
-  ## Research & Documentation
-
-- [Research Index](https://github.com/LuckyOne7777/ChatGPT-Micro-Cap-Experiment/blob/main/Experiment%20Details/Deep%20Research%20Index.md)
-
-- [Q&A](https://github.com/LuckyOne7777/ChatGPT-Micro-Cap-Experiment/blob/main/Experiment%20Details/Q%26A.md)
-
-- [Prompts](https://github.com/LuckyOne7777/ChatGPT-Micro-Cap-Experiment/blob/main/Experiment%20Details/Prompts.md)
-
--  [Markdown Research Summaries (MD)](https://github.com/LuckyOne7777/ChatGPT-Micro-Cap-Experiment/tree/main/Weekly%20Deep%20Research%20(MD))
-- [Weekly Deep Research Reports (PDF)](https://github.com/LuckyOne7777/ChatGPT-Micro-Cap-Experiment/tree/main/Weekly%20Deep%20Research%20(PDF))
+- [Research Index](docs/Deep_Research_Index.md)
+- [Q&A](docs/QA.md)
+- [Trading Prompts](docs/Prompts.md)
+- [Weekly Research Reports (MD)](reports/markdown/)
+- [Weekly Research Reports (PDF)](reports/pdf/)
   
-# Performance Example (6/30 – 7/25)
+## Performance
 
----
+![Performance Chart](performance-chart.png)
 
-![Week 4 Performance](%286-30%20-%207-25%29%20Results.png)
+The system's performance is tracked against major indices and documented in regular reports.
 
----
-- Currently stomping on the Russell 2K.
+## Quick Start
 
-# Features of This Repo
-Live trading scripts — Used to evaluate prices and update holdings daily
+1. **Install Dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-LLM-powered decision engine — ChatGPT picks the trades
+2. **Run Trading Script**
+   ```bash
+   python scripts/trading_script.py
+   ```
 
-Performance tracking — CSVs with daily PnL, total equity, and trade history
+3. **Generate Performance Chart**
+   ```bash
+   python scripts/generate_graph.py
+   ```
 
-Visualization tools — Matplotlib graphs comparing ChatGPT vs Index
+## Tech Stack
 
-Logs & trade data — Auto-saved logs for transparency
+- **Python**: Core trading logic and data processing
+- **pandas**: Data manipulation and analysis
+- **yfinance**: Real-time market data
+- **matplotlib**: Performance visualization
+- **AI Integration**: Automated decision-making system
 
-# Why This Matters
-AI is being hyped across every industry, but can it really manage money without guidance?
+## Project Structure
 
-This project is an attempt to find out, with transparency, data, and a real budget.
+```
+├── scripts/           # Core trading and visualization scripts
+├── data/             # Portfolio and trade data (CSV files)
+├── docs/             # Documentation and research
+├── reports/          # Weekly analysis reports
+└── auto_trader/      # Automated trading components
+```
 
-# Tech Stack
-Basic Python 
+## Contributing
 
-Pandas + yFinance for data & logic
-
-Matplotlib for visualizations
-
-ChatGPT 4o for decision-making
-
-# Follow Along
-The experiment runs June 2025 to December 2025.
-Every trading day I will update the portfolio CSV file.
-If you feel inspired to do something simiar, feel free to use this as a blueprint.
-
-Updates are posted weekly on my blog — more coming soon!
-
-One final shameless plug: (https://substack.com/@nathanbsmith?utm_source=edit-profile-page)
-
-Find a mistake in the logs or have advice?
-Please Reach out here: nathanbsmith.business@gmail.com
+This project serves as a framework for AI-driven trading research. Feel free to fork and adapt for your own experiments.
