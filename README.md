@@ -8,10 +8,12 @@ This project implements an AI-driven trading system focused on micro-cap stocks 
 
 ## Features
 
+- **Dual AI Scheduling**: OpenAI o3 deep research at market open + GPT-4o daily analysis
+- **Deep Research Integration**: Comprehensive market analysis with web search and financial data
 - **Automated Trading Logic**: Daily portfolio evaluation and trade execution
 - **Risk Management**: Built-in stop-loss triggers and position sizing
 - **Performance Tracking**: Comprehensive logging of trades and portfolio metrics
-- **Research Integration**: Weekly deep research analysis for strategy refinement
+- **Multi-Provider AI**: OpenAI, Anthropic, Groq support with automatic fallback
 - **Visualization**: Performance charts comparing against market indices
 
 ## Documentation
@@ -27,6 +29,13 @@ This project implements an AI-driven trading system focused on micro-cap stocks 
 ![Performance Chart](performance-chart.png)
 
 The system's performance is tracked against major indices and documented in regular reports.
+
+## AI Trading Cycles
+
+The system runs two automated AI cycles daily:
+
+- **09:30 EST - Market Open**: OpenAI o3 deep research with web search, financial analysis, and comprehensive market research
+- **16:30 EST - Market Close**: GPT-4o daily portfolio evaluation, risk management, and trading decisions
 
 ## Quick Start
 

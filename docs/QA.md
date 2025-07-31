@@ -25,6 +25,6 @@ I mirror the trades in a real Vanguard brokerage account. If it executes there, 
 ### Could this actually be a real investing strategy?
 It has serious potential. Most retail traders chase SPY predictions with random forests and fail. Real alpha hides in footnotes, obscure filings, and early-stage clinical data, files an LLM can parse in seconds. If combined with human oversight, this could absolutely be a viable hybrid strategy.
 
-Want to submit a question? 
+## Questions & Contributions
 
-Please do so here: nathanbsmith729@gmail.com
+For questions about this micro-cap trading system or to contribute improvements, please open an issue on the GitHub repository.
