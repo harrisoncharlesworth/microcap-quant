@@ -5,6 +5,7 @@
   },
   "deploy": {
     "startCommand": "python -m auto_trader.automated_trader",
+    "cronSchedule": "0 13 * * 1-5",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3,
     "healthcheckPath": null,

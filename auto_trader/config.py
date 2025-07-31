@@ -32,7 +32,7 @@ class TradingConfig:
     
     # Scheduling
     trading_time: str = "16:30"  # Run 30min after market close EST
-    market_open_time: str = "09:30"  # NEW - research runs at open
+    market_open_time: str = "09:00"  # Pre-market research runs 30min before open
     timezone: str = "US/Eastern"
     
     # Monitoring
@@ -47,5 +47,5 @@ class TradingConfig:
 # Watchlist tickers for comparison
 BENCHMARK_TICKERS = ["^RUT", "IWO", "XBI"]
 
-# Weekly deep research schedule
-DEEP_RESEARCH_DAYS = ["friday"]  # Run weekly deep research on Fridays
+# Daily deep research schedule  
+DEEP_RESEARCH_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"]  # Run daily pre-market research
