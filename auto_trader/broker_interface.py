@@ -22,11 +22,24 @@ class BrokerInterface:
         self.config = config
         self.logger = logging.getLogger(__name__)
         
-        # Initialize Alpaca API
+        # Initialize Alpaca API with proper credential handling
+        import os
+        
+        # Resolve credentials from config or environment variables
+        api_key = (config.alpaca_api_key 
+                  or os.getenv("ALPACA_API_KEY") 
+                  or os.getenv("APCA_API_KEY_ID"))
+        api_secret = (config.alpaca_secret_key 
+                     or os.getenv("ALPACA_SECRET_KEY") 
+                     or os.getenv("APCA_API_SECRET_KEY"))
+        
+        if not api_key or not api_secret:
+            raise ValueError("Alpaca API credentials not found in config or environment variables")
+        
         base_url = 'https://paper-api.alpaca.markets' if config.paper_trading else 'https://api.alpaca.markets'
         self.api = tradeapi.REST(
-            config.alpaca_api_key,
-            config.alpaca_secret_key,
+            api_key,
+            api_secret,
             base_url=base_url,
             api_version='v2'
         )

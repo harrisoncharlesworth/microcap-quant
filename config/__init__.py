@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Dict, Any
+import os
 
 @dataclass
 class TradingConfig:
@@ -24,9 +25,9 @@ class TradingConfig:
     # Trading mode
     paper_trading: bool = True
     
-    # Broker configuration
-    alpaca_api_key: str = ""
-    alpaca_secret_key: str = ""
+    # Broker configuration (read from environment variables)
+    alpaca_api_key: str = os.getenv("APCA_API_KEY_ID", os.getenv("ALPACA_API_KEY", ""))
+    alpaca_secret_key: str = os.getenv("APCA_API_SECRET_KEY", os.getenv("ALPACA_SECRET_KEY", ""))
     
     # AI API keys
     openai_api_key: str = ""
