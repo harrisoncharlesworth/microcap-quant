@@ -15,6 +15,9 @@ import os
 # Add parent directory to path to import existing modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+import sys
+import os
+sys.path.append(os.path.dirname(__file__))
 from config import TradingConfig, BENCHMARK_TICKERS, DEEP_RESEARCH_DAYS
 from .ai_decision_engine import AIDecisionEngine, TradingDecision
 from .broker_interface import BrokerInterface, OrderResult
@@ -355,6 +358,58 @@ class AutomatedTrader:
             self.logger.error(f"Market-open cycle failed: {e}")
             self.notifications.send_error_alert(str(e))
 
+    def run_intraday_news_check(self):
+        """11:00 AM EST – quick news refresh (Oracle's recommendation)"""
+        try:
+            self.logger.info("=== Starting Intraday News Check ===")
+            
+            # Quick news-based analysis without heavy trading
+            portfolio_data = self.load_current_portfolio()
+            
+            # Use primary model for quick news analysis
+            prompt = f"""Quick intraday news analysis for current portfolio:
+            
+{self._format_portfolio(portfolio_data)}
+
+Check for breaking news, earnings updates, or major market events that might affect current positions.
+Provide brief confidence adjustments and any urgent alerts needed.
+
+Respond with JSON format for any urgent actions only:
+{{"decisions": [], "alerts": []}}"""
+            
+            response = self.ai_engine._call_ai_model(prompt, self.config.primary_model, max_tokens=500)
+            
+            try:
+                import json
+                data = json.loads(response)
+                alerts = data.get("alerts", [])
+                
+                if alerts:
+                    self.logger.warning(f"Intraday alerts: {alerts}")
+                    self.notifications.send_daily_report([], {})
+                    self.logger.warning(f"Sent intraday alerts: {', '.join(alerts)}")
+                else:
+                    self.logger.info("No urgent intraday alerts")
+                    
+            except:
+                self.logger.info("News check completed - no structured alerts")
+            
+            self.logger.info("=== Intraday News Check Complete ===")
+            
+        except Exception as e:
+            self.logger.error(f"Intraday news check failed: {e}")
+
+    def _format_portfolio(self, portfolio_data: Dict) -> str:
+        """Helper method to format portfolio for prompts"""
+        if not portfolio_data.get('positions'):
+            return f"Cash: ${portfolio_data.get('cash', 0):.2f}, Total Equity: ${portfolio_data.get('total_equity', 0):.2f}"
+        
+        lines = [f"Cash: ${portfolio_data.get('cash', 0):.2f}"]
+        for ticker, pos in portfolio_data['positions'].items():
+            lines.append(f"{ticker}: {pos['shares']} shares @ ${pos['buy_price']:.2f}")
+        lines.append(f"Total Equity: ${portfolio_data.get('total_equity', 0):.2f}")
+        return "\n".join(lines)
+
     def start_automated_trading(self):
         """Start the automated trading schedule"""
         self.logger.info("Starting automated trading system...")
@@ -362,14 +417,18 @@ class AutomatedTrader:
         # Schedule daily trading at market close
         schedule.every().day.at(self.config.trading_time).do(self.run_daily_cycle)
         
-        # Schedule deep research at market open
-        schedule.every().day.at(self.config.market_open_time).do(self.run_opening_cycle)
+        # Schedule deep research pre-market (Oracle's recommendation)
+        schedule.every().day.at(self.config.pre_market_research_time).do(self.run_opening_cycle)
+        
+        # Schedule optional intraday news refresh
+        schedule.every().day.at(self.config.intraday_news_time).do(self.run_intraday_news_check)
         
         # Initial health check
         self.notifications.send_startup_notification()
         
         self.logger.info(f"Scheduled daily trading at {self.config.trading_time} {self.config.timezone}")
-        self.logger.info(f"Scheduled deep research at {self.config.market_open_time} {self.config.timezone}")
+        self.logger.info(f"Scheduled pre-market research at {self.config.pre_market_research_time} {self.config.timezone}")
+        self.logger.info(f"Scheduled intraday news check at {self.config.intraday_news_time} {self.config.timezone}")
         
         # Keep running
         while True:
@@ -378,7 +437,8 @@ class AutomatedTrader:
 
 def main():
     """Main entry point"""
-    config = TradingConfig()
+    from auto_trader.config import TradingConfig as AutoTraderConfig
+    config = AutoTraderConfig()
     trader = AutomatedTrader(config)
     
     if len(sys.argv) > 1:

@@ -38,7 +38,7 @@ class AIDecisionEngine:
         prompt = self._build_daily_prompt(portfolio_data, market_data)
         
         try:
-            response = self._call_ai_model(prompt, self.config.primary_model)
+            response = self._call_ai_model(prompt, self.config.primary_model, max_tokens=2000)
             decisions = self._parse_decisions(response)
             self.logger.info(f"AI made {len(decisions)} trading decisions")
             return decisions
@@ -197,19 +197,40 @@ price targets, risk assessments, and timing considerations."""
                     tools=[{"type": "web_search_preview"}]
                 )
                 
-                # Debug: print response structure
-                self.logger.info(f"Deep Research Response type: {type(response)}")
-                self.logger.info(f"Deep Research Response attributes: {dir(response)}")
+                # Debug: print response structure for debugging
+                self.logger.info(f"Deep Research Response: {response}")
                 
-                # Try different ways to extract content
-                if hasattr(response, 'output') and hasattr(response.output, 'content'):
-                    return response.output.content
-                elif hasattr(response, 'content'):
-                    return response.content
-                elif hasattr(response, 'result'):
-                    return str(response.result)
-                else:
-                    return str(response)
+                # Extract content from OpenAI responses API
+                content = ""
+                try:
+                    if hasattr(response, 'output') and response.output:
+                        # response.output is a list of ResponseOutputItem
+                        for item in response.output:
+                            # Check if this is a text response
+                            if hasattr(item, 'type') and getattr(item, 'type', None) == 'text':
+                                if hasattr(item, 'text'):
+                                    content += getattr(item, 'text', '')
+                            # Try to get any text content safely
+                            item_str = str(item)
+                            if item_str and item_str != str(type(item)):
+                                content += item_str + "\n"
+                except Exception as parse_error:
+                    self.logger.error(f"Error parsing response output: {parse_error}")
+                    content = str(response)
+                
+                self.logger.info(f"Deep Research Extracted Content: {content[:500]}...")
+                
+                # The o3 deep research model returns research analysis, not trading decisions
+                # We need to parse insights and create a structured JSON response
+                if content and not content.strip().startswith('{'):
+                    # Convert research analysis to trading decision format
+                    fallback_response = {
+                        "decisions": [],
+                        "analysis": content
+                    }
+                    return json.dumps(fallback_response)
+                
+                return content if content else "{\"decisions\": []}"
                     
             except Exception as e:
                 self.logger.error(f"Deep Research API call failed: {e}")
@@ -220,10 +241,21 @@ price targets, risk assessments, and timing considerations."""
             response = self.openai_client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=max_tokens,
+                max_tokens=min(max_tokens, 4000),  # Increase limit to avoid truncation
                 temperature=0.7
             )
-            return response.choices[0].message.content or ""
+            content = response.choices[0].message.content or ""
+            self.logger.info(f"GPT model raw response: {content[:500]}...")
+            
+            # If the response isn't JSON, wrap it as analysis
+            if content and not content.strip().startswith('{'):
+                fallback_response = {
+                    "decisions": [],
+                    "analysis": content
+                }
+                return json.dumps(fallback_response)
+            
+            return content
         
         elif model.startswith("claude"):
             if not self.anthropic_client:
@@ -253,7 +285,33 @@ price targets, risk assessments, and timing considerations."""
     def _parse_decisions(self, response: str) -> List[TradingDecision]:
         """Parse AI response into trading decisions"""
         try:
-            data = json.loads(response)
+            # Try to extract JSON from response if it's embedded in text
+            if '{' in response and '}' in response:
+                start = response.find('{')
+                end = response.rfind('}') + 1
+                json_str = response[start:end]
+                
+                # Fix common JSON issues
+                json_str = json_str.replace('...', '')  # Remove truncation indicators
+                
+                # Try to find complete JSON objects
+                brace_count = 0
+                valid_end = start
+                for i, char in enumerate(json_str):
+                    if char == '{':
+                        brace_count += 1
+                    elif char == '}':
+                        brace_count -= 1
+                        if brace_count == 0:
+                            valid_end = i + 1
+                            break
+                
+                if valid_end > start:
+                    json_str = json_str[:valid_end]
+            else:
+                json_str = response
+            
+            data = json.loads(json_str)
             decisions = []
             
             for decision_data in data.get("decisions", []):

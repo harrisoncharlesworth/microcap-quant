@@ -48,12 +48,11 @@ BEAR_MAX_POSITION_PCT=0.07
 3. **Size**: 1GB (free tier)
 4. **Mount Path**: `/app/data`
 
-### Step 4: Configure Cron Schedule
+### Step 4: Set Timezone
 
-1. Still in **Settings** tab
-2. Find **"Cron"** section
-3. **Schedule**: `30 21 * * 1-5`
-4. *(Command auto-detected from railway.json)*
+1. In Railway dashboard → **Variables** tab
+2. Add: `TZ=America/New_York`
+3. *(Bot runs continuously with internal scheduling)*
 
 ### Step 5: Deploy & Monitor
 
@@ -64,11 +63,11 @@ BEAR_MAX_POSITION_PCT=0.07
 
 ## 📊 What Your Bot Does
 
-### Daily Schedule (Monday-Friday 4:30 PM EST):
-1. **Market Analysis**: AI analyzes current conditions
-2. **Risk Filtering**: Oracle's safety system validates all trades
-3. **Order Execution**: Safe trades executed via Alpaca
-4. **Email Report**: Performance summary sent to you
+### Daily Schedule (Monday-Friday):
+1. **07:45 AM EST**: Pre-market deep research (o3-deep-research model)
+2. **11:00 AM EST**: Intraday news refresh
+3. **04:30 PM EST**: Daily trading decisions & execution
+4. **Email Reports**: Performance summaries sent throughout day
 
 ### Safety Features Active:
 - ✅ **Position Limits**: Max 15% per stock (reduced in bear markets)

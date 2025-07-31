@@ -32,7 +32,8 @@ class TradingConfig:
     
     # Scheduling
     trading_time: str = "16:30"  # Run 30min after market close EST
-    market_open_time: str = "09:00"  # Pre-market research runs 30min before open
+    pre_market_research_time: str = "07:45"  # Deep research 90min before market open
+    intraday_news_time: str = "11:00"  # Optional news refresh mid-day
     timezone: str = "US/Eastern"
     
     # Monitoring
