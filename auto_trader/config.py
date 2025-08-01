@@ -39,6 +39,12 @@ class TradingConfig:
     # Monitoring
     slack_webhook: str = os.getenv("SLACK_WEBHOOK", "")
     email_alerts: bool = True
+    email_to: str = os.getenv("EMAIL_TO", "")
+    email_from: str = os.getenv("EMAIL_FROM", "")
+    smtp_server: str = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port: int = int(os.getenv("SMTP_PORT", "587"))
+    smtp_username: str = os.getenv("SMTP_USERNAME", os.getenv("EMAIL_FROM", ""))
+    smtp_password: str = os.getenv("SMTP_PASSWORD", os.getenv("EMAIL_PASSWORD", ""))
     
     # Data storage
     data_dir: str = "data"

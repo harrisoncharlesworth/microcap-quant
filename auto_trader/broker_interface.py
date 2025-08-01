@@ -6,7 +6,7 @@ import yfinance as yf
 import logging
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
-from config import TradingConfig
+from .config import TradingConfig
 from .ai_decision_engine import TradingDecision
 
 @dataclass
@@ -170,10 +170,14 @@ class BrokerInterface:
                 continue
                 
             current_price = self._get_current_price(ticker)
-            buy_price = position.get('buy_price', 0)
-            stop_loss = position.get('stop_loss', 0)
+            buy_price = position.get('buy_price', position.get('avg_entry_price', position.get('avg_price', 0)))
+            stop_loss = position.get('stop_loss')
             
-            if current_price and current_price <= stop_loss:
+            # Compute stop loss if missing (15% below buy price)
+            if stop_loss is None and buy_price > 0:
+                stop_loss = buy_price * 0.85  # 15% stop loss
+            
+            if current_price and stop_loss and current_price <= stop_loss:
                 decision = TradingDecision(
                     action="SELL",
                     ticker=ticker,

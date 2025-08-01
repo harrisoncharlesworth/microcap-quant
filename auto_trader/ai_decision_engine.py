@@ -8,7 +8,7 @@ import json
 import logging
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
-from config import TradingConfig
+from .config import TradingConfig
 
 @dataclass
 class TradingDecision:
@@ -40,7 +40,8 @@ class AIDecisionEngine:
         try:
             response = self._call_ai_model(prompt, self.config.primary_model, max_tokens=2000)
             decisions = self._parse_decisions(response)
-            self.logger.info(f"AI made {len(decisions)} trading decisions")
+            actionable_decisions = [d for d in decisions if d.action in ["BUY", "SELL"]]
+            self.logger.info(f"AI made {len(actionable_decisions)} actionable trading decisions (total: {len(decisions)})")
             return decisions
         except Exception as e:
             self.logger.error(f"Primary model failed: {e}")
@@ -327,6 +328,11 @@ price targets, risk assessments, and timing considerations."""
                 # Validate decision
                 if decision.action in ["BUY", "SELL", "HOLD"] and decision.ticker:
                     decisions.append(decision)
+            
+            # Count only actionable decisions (BUY/SELL) for logging
+            actionable_decisions = [d for d in decisions if d.action in ["BUY", "SELL"]]
+            if len(decisions) != len(actionable_decisions):
+                self.logger.info(f"Total decisions: {len(decisions)} (including {len(decisions) - len(actionable_decisions)} HOLD decisions)")
                     
             return decisions
             
@@ -343,13 +349,13 @@ price targets, risk assessments, and timing considerations."""
         if isinstance(positions, dict):
             for ticker, position in positions.items():
                 shares = position.get('shares', 0)
-                buy_price = position.get('buy_price', position.get('avg_price', 0))
+                buy_price = position.get('buy_price', position.get('avg_entry_price', position.get('avg_price', 0)))
                 lines.append(f"- {ticker}: {shares} shares @ ${buy_price:.2f}")
         elif isinstance(positions, list):
             for position in positions:
                 ticker = position.get('ticker', 'UNKNOWN')
                 shares = position.get('shares', 0)
-                buy_price = position.get('buy_price', position.get('avg_price', 0))
+                buy_price = position.get('buy_price', position.get('avg_entry_price', position.get('avg_price', 0)))
                 lines.append(f"- {ticker}: {shares} shares @ ${buy_price:.2f}")
         
         lines.append(f"Cash: ${portfolio_data.get('cash', 0):.2f}")

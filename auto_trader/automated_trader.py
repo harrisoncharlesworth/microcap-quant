@@ -8,9 +8,11 @@ import json
 import schedule
 import time
 from datetime import datetime, timedelta
+import pytz
 from typing import Dict, List
 import sys
 import os
+from concurrent.futures import ThreadPoolExecutor, Future
 
 # Add parent directory to path to import existing modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -18,7 +20,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import sys
 import os
 sys.path.append(os.path.dirname(__file__))
-from config import TradingConfig, BENCHMARK_TICKERS, DEEP_RESEARCH_DAYS
+from .config import TradingConfig, BENCHMARK_TICKERS, DEEP_RESEARCH_DAYS
 from .ai_decision_engine import AIDecisionEngine, TradingDecision
 from .broker_interface import BrokerInterface, OrderResult
 from .notification_system import NotificationSystem
@@ -33,7 +35,11 @@ class AutomatedTrader:
         self.broker = BrokerInterface(config)
         self.notifications = NotificationSystem(config)
         
-        self.logger.info("Automated Trader initialized")
+        # Initialize thread pool for non-blocking job execution
+        self.thread_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix="trader")
+        self.active_jobs = {}  # Track running jobs
+        
+        self.logger.info("Automated Trader initialized with ThreadPoolExecutor")
         
         # Load existing portfolio
         self.portfolio_file = os.path.join(config.data_dir, config.portfolio_file)
@@ -406,39 +412,133 @@ Respond with JSON format for any urgent actions only:
         
         lines = [f"Cash: ${portfolio_data.get('cash', 0):.2f}"]
         for ticker, pos in portfolio_data['positions'].items():
-            lines.append(f"{ticker}: {pos['shares']} shares @ ${pos['buy_price']:.2f}")
+            # Handle missing buy_price key with safe fallback
+            shares = pos.get('shares', 0)
+            buy_price = pos.get('buy_price', pos.get('avg_entry_price', pos.get('avg_price', 0)))
+            lines.append(f"{ticker}: {shares} shares @ ${buy_price:.2f}")
         lines.append(f"Total Equity: ${portfolio_data.get('total_equity', 0):.2f}")
         return "\n".join(lines)
+
+    def _safe_job_wrapper(self, job_name: str, job_func):
+        """Wrapper for threaded jobs with error handling and logging"""
+        try:
+            self.logger.info(f"Starting threaded job: {job_name}")
+            job_func()
+            self.logger.info(f"Completed threaded job: {job_name}")
+        except Exception as e:
+            self.logger.error(f"Threaded job {job_name} failed: {e}")
+            self.notifications.send_error_alert(f"Job {job_name} failed: {str(e)}")
+        finally:
+            # Remove from active jobs tracking
+            if job_name in self.active_jobs:
+                del self.active_jobs[job_name]
+
+    def _submit_job(self, job_name: str, job_func):
+        """Submit job to thread pool if not already running"""
+        if job_name in self.active_jobs:
+            self.logger.warning(f"Job {job_name} already running, skipping...")
+            return
+        
+        self.logger.info(f"Submitting job to thread pool: {job_name}")
+        future = self.thread_pool.submit(self._safe_job_wrapper, job_name, job_func)
+        self.active_jobs[job_name] = future
+
+    def convert_et_to_utc(self, et_time_str: str) -> str:
+        """Convert Eastern Time to UTC for scheduling"""
+        et_tz = pytz.timezone('US/Eastern')
+        utc_tz = pytz.timezone('UTC')
+        
+        # Create today's date with ET time
+        today = datetime.now(et_tz).date()
+        et_time = datetime.strptime(et_time_str, "%H:%M").time()
+        et_datetime = datetime.combine(today, et_time)
+        et_datetime = et_tz.localize(et_datetime)
+        
+        # Convert to UTC
+        utc_datetime = et_datetime.astimezone(utc_tz)
+        return utc_datetime.strftime("%H:%M")
 
     def start_automated_trading(self):
         """Start the automated trading schedule"""
         self.logger.info("Starting automated trading system...")
         
-        # Schedule daily trading at market close
-        schedule.every().day.at(self.config.trading_time).do(self.run_daily_cycle)
+        # Convert ET times to UTC for container scheduling
+        trading_time_utc = self.convert_et_to_utc(self.config.trading_time)
+        pre_market_time_utc = self.convert_et_to_utc(self.config.pre_market_research_time)
+        intraday_time_utc = self.convert_et_to_utc(self.config.intraday_news_time)
+        
+        # Schedule daily trading at market close (using thread pool)
+        schedule.every().day.at(trading_time_utc).do(self._submit_job, "daily_cycle", self.run_daily_cycle)
         
         # Schedule deep research pre-market (Oracle's recommendation)
-        schedule.every().day.at(self.config.pre_market_research_time).do(self.run_opening_cycle)
+        schedule.every().day.at(pre_market_time_utc).do(self._submit_job, "opening_cycle", self.run_opening_cycle)
         
         # Schedule optional intraday news refresh
-        schedule.every().day.at(self.config.intraday_news_time).do(self.run_intraday_news_check)
+        schedule.every().day.at(intraday_time_utc).do(self._submit_job, "intraday_news", self.run_intraday_news_check)
         
         # Initial health check
         self.notifications.send_startup_notification()
         
-        self.logger.info(f"Scheduled daily trading at {self.config.trading_time} {self.config.timezone}")
-        self.logger.info(f"Scheduled pre-market research at {self.config.pre_market_research_time} {self.config.timezone}")
-        self.logger.info(f"Scheduled intraday news check at {self.config.intraday_news_time} {self.config.timezone}")
+        self.logger.info(f"Scheduled daily trading at {self.config.trading_time} ET ({trading_time_utc} UTC)")
+        self.logger.info(f"Scheduled pre-market research at {self.config.pre_market_research_time} ET ({pre_market_time_utc} UTC)")
+        self.logger.info(f"Scheduled intraday news check at {self.config.intraday_news_time} ET ({intraday_time_utc} UTC)")
         
-        # Keep running
-        while True:
-            schedule.run_pending()
-            time.sleep(60)  # Check every minute
+        # Keep running with thread monitoring and crash protection
+        heartbeat_counter = 0
+        try:
+            while True:
+                try:
+                    schedule.run_pending()
+                    
+                    # Log active jobs periodically 
+                    if len(self.active_jobs) > 0:
+                        active_job_names = list(self.active_jobs.keys())
+                        self.logger.debug(f"Active threaded jobs: {active_job_names}")
+                    
+                    # Heartbeat logging every 5 minutes
+                    heartbeat_counter += 1
+                    if heartbeat_counter >= 5:
+                        self.logger.info("Scheduler heartbeat: System running normally")
+                        # Log next scheduled runs
+                        for job in schedule.get_jobs():
+                            job_name = getattr(job.job_func, '__name__', 'unknown_job')
+                            self.logger.info(f"Next {job_name} run: {job.next_run}")
+                        heartbeat_counter = 0
+                    
+                except Exception as e:
+                    self.logger.error(f"Scheduler loop error: {e}", exc_info=True)
+                    # Continue running despite individual loop errors
+                
+                time.sleep(60)  # Check every minute
+        except KeyboardInterrupt:
+            self.logger.info("Shutting down automated trader...")
+            self.shutdown()
+        except Exception as e:
+            self.logger.error(f"Fatal main loop error: {e}")
+            self.shutdown()
+            raise
+
+    def shutdown(self):
+        """Gracefully shutdown the trader and thread pool"""
+        self.logger.info("Shutting down thread pool...")
+        
+        # Wait for running jobs to complete (with timeout)
+        if self.active_jobs:
+            self.logger.info(f"Waiting for {len(self.active_jobs)} jobs to complete...")
+            for job_name, future in self.active_jobs.items():
+                try:
+                    future.result(timeout=30)  # 30 second timeout per job
+                    self.logger.info(f"Job {job_name} completed during shutdown")
+                except Exception as e:
+                    self.logger.warning(f"Job {job_name} failed during shutdown: {e}")
+        
+        # Shutdown thread pool
+        self.thread_pool.shutdown(wait=True)
+        self.logger.info("Thread pool shutdown complete")
 
 def main():
     """Main entry point"""
-    from auto_trader.config import TradingConfig as AutoTraderConfig
-    config = AutoTraderConfig()
+    config = TradingConfig()
     trader = AutomatedTrader(config)
     
     if len(sys.argv) > 1:
