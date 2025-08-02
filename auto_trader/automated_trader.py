@@ -444,15 +444,22 @@ Respond with JSON format for any urgent actions only:
         self.active_jobs[job_name] = future
 
     def convert_et_to_utc(self, et_time_str: str) -> str:
-        """Convert Eastern Time to UTC for scheduling"""
+        """Convert Eastern Time to UTC for scheduling, ensuring future time"""
         et_tz = pytz.timezone('US/Eastern')
         utc_tz = pytz.timezone('UTC')
         
-        # Create today's date with ET time
-        today = datetime.now(et_tz).date()
+        # Get current time in ET
+        current_et = datetime.now(et_tz)
+        
+        # Create today's date with desired ET time
         et_time = datetime.strptime(et_time_str, "%H:%M").time()
-        et_datetime = datetime.combine(today, et_time)
+        et_datetime = datetime.combine(current_et.date(), et_time)
         et_datetime = et_tz.localize(et_datetime)
+        
+        # If the time has already passed today, schedule for tomorrow
+        if et_datetime <= current_et:
+            et_datetime = et_datetime + timedelta(days=1)
+            self.logger.info(f"Time {et_time_str} ET has passed today, scheduling for tomorrow")
         
         # Convert to UTC
         utc_datetime = et_datetime.astimezone(utc_tz)
